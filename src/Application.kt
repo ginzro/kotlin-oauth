@@ -22,6 +22,7 @@ object ConstValue {
   const val CLIENT_ID = "oauth-client-1"
   const val CLIENT_SECRET = "oauth-client-secret-1"
   val REDIRECT_URI = "http://localhost:9000/callback"
+  lateinit var TOKEN: String
 }
 
 object DB {
@@ -79,10 +80,8 @@ fun Application.module(testing: Boolean = false) {
         url("http://localhost:9001/token")
       }.build()
       val res = OkHttpClient().newCall(req).execute()
-
-
       val responseBody = Gson().fromJson(res.body!!.string(), TokenResp::class.java)!!
-      println(responseBody)
+      ConstValue.TOKEN = responseBody.access_token
       call.respondHtml {
         body {
           h1 { +"OAuth徹底入門 with Kotlin" }
@@ -94,24 +93,31 @@ fun Application.module(testing: Boolean = false) {
             li { +"token is ${responseBody.access_token}" }
             li { +"token type is ${responseBody.token_type}" }
           }
+          h2 { +"next" }
+          a(href = "http://localhost:9000/protected_resource") { +"GET PROTECTED RESOURCE" }
+        }
+      }
+    }
+
+    get("/protected_resource") {
+      val req = Request.Builder().apply {
+        addHeader("Content-Type", "application/x-www-form-urlencoded")
+        addHeader("Authorization", "Bearer ${ConstValue.TOKEN}")
+        url("http://localhost:9002/resource")
+        method("POST", "".toRequestBody())
+      }.build()
+      val res = OkHttpClient().newCall(req).execute()
+      call.respondHtml {
+        body {
+          h1 { +"OAuth徹底入門 with Kotlin" }
+          h2 { +"protected resource" }
+          ul {
+            li { +"data is ${res.body?.string()}" }
+          }
         }
       }
     }
   }
-}
-
-fun FlowOrMetaDataContent.styleCss(builder: CSSBuilder.() -> Unit) {
-  style(type = ContentType.Text.CSS.toString()) {
-    +CSSBuilder().apply(builder).toString()
-  }
-}
-
-fun CommonAttributeGroupFacade.style(builder: CSSBuilder.() -> Unit) {
-  this.style = CSSBuilder().apply(builder).toString().trim()
-}
-
-suspend inline fun ApplicationCall.respondCss(builder: CSSBuilder.() -> Unit) {
-  this.respondText(CSSBuilder().apply(builder).toString(), ContentType.Text.CSS)
 }
 
 fun getRandomString(): String {
