@@ -12,8 +12,10 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.apache.commons.codec.binary.Base64
+import java.math.BigInteger
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
+import java.security.SecureRandom
 import kotlin.random.Random
 
 fun main(args: Array<String>): Unit = io.ktor.server.netty.EngineMain.main(args)
@@ -121,11 +123,12 @@ fun Application.module(testing: Boolean = false) {
 }
 
 fun getRandomString(): String {
-  val charPool = ('a'..'z') + ('A'..'Z') + ('0'..'9')
-  return (1..20)
-    .map { Random.nextInt(0, charPool.size) }
-    .map { charPool[it] }
-    .joinToString("")
+  /*
+   生成されるトークン(および、エンドユーザーが扱うことを想定していないほかのクレデンシャル)
+   について攻撃者が推測できる可能性は 2−128 以下にしなくてはならず(MUST)、
+   そして、2−160 以 下にするべきです(SHOULD)。
+  */
+  return BigInteger(160, SecureRandom()).toString(32)
 }
 
 
